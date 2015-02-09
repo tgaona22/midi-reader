@@ -30,7 +30,28 @@ public class MidiReader {
 	}
 	return true;
     }
+    public boolean readTrackChunk() {
+	try {
+	    char trkID[] = {'M', 'T', 'r', 'k'};
+	    for (int i = 0; i < 4; i++) {
+		if ((char)input.readByte() != trkID[i]) {
+		    System.err.println("Error reading track chunk.");
+		    return false;
+		}
+	    }
+	    int chunkLength = input.readInt();
+	    int bytesRead = 0;
+	    while (bytesRead != chunkLength) {
+		int dt = readDeltaTime(bytesRead);
 
+	    }
+	} catch (IOException e) {
+	    System.err.println(e.toString());
+	}
+	return true;
+    }
+    private int readDeltaTime() {
+	
     public void printHeaderInformation() {
 	System.out.println("File Format: " + fileFormat);
 	System.out.println("Number of track chunks: " + trackCount);
