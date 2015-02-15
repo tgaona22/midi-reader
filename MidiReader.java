@@ -3,9 +3,11 @@ import java.io.*;
 public class MidiReader {
     private DataInputStream input;
     private int headerChunkLength, fileFormat, trackCount, timeDivision;
+    private int bytesRead;
 
     public MidiReader(String filename) {
 	try {
+	    bytesRead = 0;
 	    input = new DataInputStream(new FileInputStream(filename));
 	} catch (IOException e) {
 	    System.err.println(e.toString());
@@ -24,6 +26,8 @@ public class MidiReader {
 	    headerChunkLength = input.readInt();
 	    fileFormat = input.readShort();
 	    trackCount = input.readShort();
+	    /* NOTE: timeDivision can be interpreted in two ways...
+	       This needs to be fixed. */
 	    timeDivision = input.readShort();
 	} catch (IOException e) {
 	    System.err.println(e.toString());
@@ -40,10 +44,17 @@ public class MidiReader {
 		}
 	    }
 	    int chunkLength = input.readInt();
-	    int bytesRead = 0;
+	    bytesRead = 0;
 	    while (bytesRead != chunkLength) {
-		int dt = readDeltaTime(bytesRead);
-
+		int dt = readDeltaTime();
+		byte status = readByte();
+		if (isStatusByte(status)) {
+		    //parse status
+		}
+		else {
+		    //treat as running status
+		}
+		
 	    }
 	} catch (IOException e) {
 	    System.err.println(e.toString());
@@ -51,10 +62,43 @@ public class MidiReader {
 	return true;
     }
     private int readDeltaTime() {
-	
+	byte[] arr = new byte[4];
+	int byteCount = 0;
+	try {
+	    arr[byteCount] = readByte();
+	    byte mask = 0b10000000;
+	    /* Read bytes until the most significant bit is set to 0. */
+	    while ((arr[byteCount++] & mask) == mask) {
+		arr[byteCount] = readByte();
+	    }
+	    /* Pad with 0's until arr contains 4 bytes. */
+	    while (byteCount < 4) {
+		arr[byteCount++] = 0;
+	    }
+	} catch (IOException e) {
+	    System.err.println(e.toString());
+	}
+	/* Use ByteBuffer to return the bytes of arr as an integer. */
+	return (ByteBuffer.wrap(arr, 0, byteCount)).getInt();
+    }
+    private boolean isStatusByte(byte b) {
+	byte mask = 0b10000000;
+	return ((b & mask) == mask);
+    }
+    /* A simple wrapper function that removes the burden of updating bytesRead count 
+     * from the programmer. */
+    private byte readByte() {
+	try {
+	    bytesRead++;
+	    return input.readByte();
+	} catch (IOException e) {
+	    System.err.println(e.toString());
+	}
+    }
     public void printHeaderInformation() {
 	System.out.println("File Format: " + fileFormat);
 	System.out.println("Number of track chunks: " + trackCount);
 	System.out.println("Time division: " + timeDivision + " ticks per beat.");
     }
+	   
 }
