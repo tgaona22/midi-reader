@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class MidiReader {
     private DataInputStream input;
@@ -64,25 +65,21 @@ public class MidiReader {
     private int readDeltaTime() {
 	byte[] arr = new byte[4];
 	int byteCount = 0;
-	try {
+	arr[byteCount] = readByte();
+	int mask = 0b10000000;
+	/* Read bytes until the most significant bit is set to 0. */
+	while ((arr[byteCount++] & mask) == mask) {
 	    arr[byteCount] = readByte();
-	    byte mask = 0b10000000;
-	    /* Read bytes until the most significant bit is set to 0. */
-	    while ((arr[byteCount++] & mask) == mask) {
-		arr[byteCount] = readByte();
-	    }
-	    /* Pad with 0's until arr contains 4 bytes. */
-	    while (byteCount < 4) {
-		arr[byteCount++] = 0;
-	    }
-	} catch (IOException e) {
-	    System.err.println(e.toString());
+	}
+	/* Pad with 0's until arr contains 4 bytes. */
+	while (byteCount < 4) {
+	    arr[byteCount++] = 0;
 	}
 	/* Use ByteBuffer to return the bytes of arr as an integer. */
-	return (ByteBuffer.wrap(arr, 0, byteCount)).getInt();
+	return ByteBuffer.wrap(arr, 0, byteCount).getInt();
     }
     private boolean isStatusByte(byte b) {
-	byte mask = 0b10000000;
+	int mask = 0b10000000;
 	return ((b & mask) == mask);
     }
     /* A simple wrapper function that removes the burden of updating bytesRead count 
@@ -93,6 +90,8 @@ public class MidiReader {
 	    return input.readByte();
 	} catch (IOException e) {
 	    System.err.println(e.toString());
+	} finally {
+	    return 0;
 	}
     }
     public void printHeaderInformation() {
